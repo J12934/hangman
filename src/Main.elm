@@ -1,8 +1,9 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div, h1, img, ul, li)
+import Html exposing (Html, text, div, h1, img, ul, li, input)
 import Html.Attributes exposing (src)
+import Html.Events exposing (onInput)
 import Set exposing (Set)
 
 
@@ -27,12 +28,30 @@ init =
 
 ---- UPDATE ----
 
-type Msg = Input Char | None
+type Msg = Input String | None
 
+
+solveLetterIfMatching : Char -> Letter -> Letter
+solveLetterIfMatching inputChar wordLetter = case wordLetter of
+    Solved _ -> wordLetter
+    Unsolved c -> if c == inputChar then
+            Solved c
+        else
+            wordLetter
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    ( model, Cmd.none )
+update msg model = case msg of
+    Input i -> 
+        let
+            chars = List.reverse (String.toList i)
+        in
+        case chars of
+            [] -> (model, Cmd.none)
+            c::_ -> ({
+                        progress = List.map (solveLetterIfMatching c) model.progress,
+                        inputLetters = Set.insert c model.inputLetters
+                    }, Cmd.none)
+    None -> (model, Cmd.none)
 
 
 
@@ -44,8 +63,14 @@ renderLetter letter  = case letter of
 
 view : Model -> Html Msg
 view model =
-    ul []
-    (List.map renderLetter model.progress)
+    div []
+        [
+            img[src ("/hangman/" ++ String.fromInt(max 0 (14 - (Set.size model.inputLetters)) ) ++ ".svg")][],
+            ul []
+                 (List.map renderLetter model.progress),
+            input  [ onInput Input] []
+        ]
+    
 
 
 
