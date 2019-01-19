@@ -6,6 +6,8 @@ import Html.Attributes exposing (src)
 import Html.Events exposing (onInput)
 import Set exposing (Set)
 
+import Keyboard exposing (Key(..))
+import Keyboard exposing (RawKey)
 
 ---- MODEL ----
 type Letter = Solved Char | Unsolved Char
@@ -28,7 +30,7 @@ init =
 
 ---- UPDATE ----
 
-type Msg = Input String | None
+type Msg = KeyUp RawKey | None
 
 
 solveLetterIfMatching : Char -> Letter -> Letter
@@ -40,17 +42,24 @@ solveLetterIfMatching inputChar wordLetter = case wordLetter of
             wordLetter
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model = case msg of
-    Input i -> 
-        let
-            chars = List.reverse (String.toList i)
+update msg model = case msg of      
+    KeyUp rawKey -> 
+        let 
+            char = Keyboard.characterKey rawKey
         in
-        case chars of
-            [] -> (model, Cmd.none)
-            c::_ -> ({
-                        progress = List.map (solveLetterIfMatching c) model.progress,
-                        inputLetters = Set.insert c model.inputLetters
-                    }, Cmd.none)
+            case char of
+                Just (Character value) ->
+                    let
+                        chars = List.reverse (String.toList value)
+                    in
+                    case chars of
+                        [] -> (model, Cmd.none)
+                        c::_ -> ({
+                                    progress = List.map (solveLetterIfMatching c) model.progress,
+                                    inputLetters = Set.insert c model.inputLetters
+                                }, Cmd.none)
+                _ ->
+                    ( model, Cmd.none )
     None -> (model, Cmd.none)
 
 
@@ -67,10 +76,16 @@ view model =
         [
             img[src ("/hangman/" ++ String.fromInt(max 0 (14 - (Set.size model.inputLetters)) ) ++ ".svg")][],
             ul []
-                 (List.map renderLetter model.progress),
-            input  [ onInput Input] []
+                 (List.map renderLetter model.progress)
         ]
-    
+
+
+---- SUBSCRIPTIONS ----
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Keyboard.ups KeyUp ]
 
 
 
@@ -83,5 +98,5 @@ main =
         { view = view
         , init = \_ -> init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
