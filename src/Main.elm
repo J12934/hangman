@@ -1,28 +1,33 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div, h1, img)
+import Html exposing (Html, text, div, h1, img, ul, li)
 import Html.Attributes exposing (src)
+import Set exposing (Set)
 
 
 ---- MODEL ----
-
+type Letter = Solved Char | Unsolved Char
 
 type alias Model =
-    {}
+    {
+        progress: List Letter,
+        inputLetters: Set Char
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( {}, Cmd.none )
+    ( {
+        progress = [Solved 't', Unsolved 'e', Unsolved 's', Solved 't'],
+        inputLetters = Set.fromList ['t', 'a']
+    }, Cmd.none )
 
 
 
 ---- UPDATE ----
 
-
-type Msg
-    = NoOp
+type Msg = Input Char | None
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -33,13 +38,14 @@ update msg model =
 
 ---- VIEW ----
 
+renderLetter letter  = case letter of
+    Solved x -> text (String.fromChar x)
+    Unsolved _ -> text " _ "
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ img [ src "/logo.svg" ] []
-        , h1 [] [ text "Your Elm App is working!" ]
-        ]
+    ul []
+    (List.map renderLetter model.progress)
 
 
 
