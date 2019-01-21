@@ -53,7 +53,10 @@ keyToChar rawKey =
                 in
                 case chars of
                     [] -> Nothing
-                    c::_ -> Just c
+                    c::_ -> if Char.isAlpha c then
+                            Just (Char.toLower c)
+                        else
+                            Nothing
             _ ->
                 Nothing
 
