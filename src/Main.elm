@@ -41,25 +41,33 @@ solveLetterIfMatching inputChar wordLetter = case wordLetter of
         else
             wordLetter
 
+keyToChar : RawKey -> Maybe Char
+keyToChar rawKey = 
+    let
+        char = Keyboard.characterKey rawKey
+    in
+        case char of
+            Just (Character value) ->
+                let
+                    chars = List.reverse (String.toList value)
+                in
+                case chars of
+                    [] -> Nothing
+                    c::_ -> Just c
+            _ ->
+                Nothing
+
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model = case msg of      
-    KeyUp rawKey -> 
-        let 
-            char = Keyboard.characterKey rawKey
-        in
-            case char of
-                Just (Character value) ->
-                    let
-                        chars = List.reverse (String.toList value)
-                    in
-                    case chars of
-                        [] -> (model, Cmd.none)
-                        c::_ -> ({
-                                    progress = List.map (solveLetterIfMatching c) model.progress,
-                                    inputLetters = Set.insert c model.inputLetters
-                                }, Cmd.none)
-                _ ->
-                    ( model, Cmd.none )
+update msg model = case msg of
+    KeyUp rawKey ->
+        case (keyToChar rawKey) of
+            Just c ->
+                ({
+                    progress = List.map (solveLetterIfMatching c) model.progress,
+                    inputLetters = Set.insert c model.inputLetters
+                }, Cmd.none)
+            Nothing ->
+                ( model, Cmd.none )
     None -> (model, Cmd.none)
 
 
