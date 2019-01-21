@@ -19,20 +19,32 @@ type alias Model =
         progress: List Letter,
         inputLetters: Set Char,
         won: Won,
-        triesLeft: Int
+        triesLeft: Int,
+        words: List String
     }
 
+toUnsolvedLetterList : String -> List Letter
+toUnsolvedLetterList word =
+    List.map (\c -> Unsolved c) (String.toList word)
 
-init : ( Model, Cmd Msg )
-init =
-    ( {
-        progress = [Unsolved 't', Unsolved 'e', Unsolved 's', Unsolved 't'],
-        inputLetters = Set.fromList [],
-        won = InProgress,
-        triesLeft = 13
-    }, Cmd.none )
-
-
+init : List String -> ( Model, Cmd Msg )
+init words =
+    case words of
+        firstWord :: otherWords ->
+            ( {
+                progress = toUnsolvedLetterList firstWord,
+                inputLetters = Set.fromList [],
+                won = InProgress,
+                triesLeft = 13,
+                words = otherWords
+            }, Cmd.none )
+        [] -> ( {
+                progress = [Unsolved 't', Unsolved 'e', Unsolved 's', Unsolved 't'],
+                inputLetters = Set.fromList [],
+                won = InProgress,
+                triesLeft = 13,
+                words = []
+            }, Cmd.none )
 
 ---- UPDATE ----
 
@@ -85,16 +97,14 @@ update msg model =
                                 let
                                     currentProgress = List.map (solveLetterIfMatching c) model.progress
                                 in
-                                    ({
+                                    ({ model |
                                         progress = currentProgress,
                                         inputLetters = Set.insert c model.inputLetters,
-                                        won = if (isWon currentProgress) then Won else InProgress,
-                                        triesLeft = model.triesLeft
+                                        won = if (isWon currentProgress) then Won else InProgress
                                     }, Cmd.none)
                             --- Fehlerhafter versuch
                             else
-                                ({
-                                    progress = model.progress,
+                                ({ model |
                                     inputLetters = Set.insert c model.inputLetters,
                                     --- Game is lost if only 1 attempt remained
                                     won = if model.triesLeft == 1 then Lost else InProgress,
@@ -155,11 +165,11 @@ subscriptions model =
 ---- PROGRAM ----
 
 
-main : Program () Model Msg
+main : Program (List String) Model Msg
 main =
     Browser.element
         { view = view
-        , init = \_ -> init
+        , init = init
         , update = update
         , subscriptions = subscriptions
         }
