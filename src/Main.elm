@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div, h1, img, ul, li, input)
+import Html exposing (Html, text, div, h1, img, ul, li, input, span)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onInput)
 import Set exposing (Set)
@@ -12,18 +12,24 @@ import Keyboard exposing (RawKey)
 ---- MODEL ----
 type Letter = Solved Char | Unsolved Char
 
+type Won = Won | Lost | InProgress
+
 type alias Model =
     {
         progress: List Letter,
-        inputLetters: Set Char
+        inputLetters: Set Char,
+        won: Won,
+        triesLeft: Int
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     ( {
-        progress = [Solved 't', Unsolved 'e', Unsolved 's', Solved 't'],
-        inputLetters = Set.fromList ['t', 'a']
+        progress = [Unsolved 't', Unsolved 'e', Unsolved 's', Unsolved 't'],
+        inputLetters = Set.fromList [],
+        won = InProgress,
+        triesLeft = 13
     }, Cmd.none )
 
 
@@ -61,19 +67,61 @@ keyToChar rawKey =
                 Nothing
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model = case msg of
-    KeyUp rawKey ->
-        case (keyToChar rawKey) of
-            Just c ->
-                ({
-                    progress = List.map (solveLetterIfMatching c) model.progress,
-                    inputLetters = Set.insert c model.inputLetters
-                }, Cmd.none)
-            Nothing ->
-                ( model, Cmd.none )
-    None -> (model, Cmd.none)
+update msg model = 
+    case msg of
+        KeyUp rawKey ->
+            case model.won of
+                Won -> ( model, Cmd.none )
+                Lost -> (model, Cmd.none)
+                InProgress -> case (keyToChar rawKey) of
+                    Just c ->
+                        --- Input Buchstabe schon versucht?
+                        if Set.member c model.inputLetters then
+                            --- Input ignorieren
+                            ( model, Cmd.none )
+                        else
+                            --- Input Buchstabe löst einen Buchstaben vom Wort
+                            if isSuccessfulTry model.progress c then
+                                let
+                                    currentProgress = List.map (solveLetterIfMatching c) model.progress
+                                in
+                                    ({
+                                        progress = currentProgress,
+                                        inputLetters = Set.insert c model.inputLetters,
+                                        won = if (isWon currentProgress) then Won else InProgress,
+                                        triesLeft = model.triesLeft
+                                    }, Cmd.none)
+                            --- Fehlerhafter versuch
+                            else
+                                ({
+                                    progress = model.progress,
+                                    inputLetters = Set.insert c model.inputLetters,
+                                    --- Game is lost if only 1 attempt remained
+                                    won = if model.triesLeft == 1 then Lost else InProgress,
+                                    triesLeft = (model.triesLeft - 1)
+                                }, Cmd.none)
+                    Nothing ->
+                        ( model, Cmd.none )
+        None -> (model, Cmd.none)
 
 
+isWon : (List Letter) -> Bool
+isWon letters = List.all isSolved letters
+
+isSolved : Letter -> Bool
+isSolved letter = case letter of
+    Solved _ -> True
+    Unsolved _ -> False
+
+isSuccessfulTry : (List Letter) -> Char -> Bool
+isSuccessfulTry letters char =
+    List.any (solvesLetter char) letters
+
+solvesLetter : Char -> Letter -> Bool
+solvesLetter char letter = case letter of
+    Solved _ -> False
+    Unsolved c -> c == char
+        
 
 ---- VIEW ----
 
@@ -85,9 +133,13 @@ view : Model -> Html Msg
 view model =
     div []
         [
-            img[src ("/hangman/" ++ String.fromInt(max 0 (14 - (Set.size model.inputLetters)) ) ++ ".svg")][],
+            img[src ("/hangman/" ++ String.fromInt(model.triesLeft) ++ ".svg")][],
             ul []
-                 (List.map renderLetter model.progress)
+                 (List.map renderLetter model.progress),
+            case model.won of
+                Won -> text "You won!"
+                Lost -> text "You Lost!"
+                InProgress -> text ("Tries left: " ++ (String.fromInt model.triesLeft))
         ]
 
 
