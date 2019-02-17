@@ -1,8 +1,8 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div, h1, img, ul, li, input, span)
-import Html.Attributes exposing (src)
+import Html exposing (Html, text, div, h1, img, ul, li, input, span, a, img)
+import Html.Attributes exposing (src, class, href, rel, target, style)
 import Html.Events exposing (onInput)
 import Set exposing (Set)
 
@@ -135,23 +135,49 @@ solvesLetter char letter = case letter of
 
 ---- VIEW ----
 
-renderLetter letter  = case letter of
-    Solved x -> text (String.fromChar x)
-    Unsolved _ -> text " _ "
+renderLetter won letter  = case letter of
+    Solved x -> span [ class "letter", class "letter_solved" ] [text (String.fromChar x)]
+    Unsolved x -> case won of
+        Won -> text "Mhh this case doesnt really make any sense..."
+        Lost -> span [ class "letter", class "letter_lost" ] [text (String.fromChar x)]
+        InProgress -> span [ class "letter", class "letter_empty" ] [text "_"]
+
+
+letterToChar : Letter -> Char
+letterToChar letter = case letter of
+    Solved c -> c
+    Unsolved c -> c
+        
+
+lettersToString : List Letter -> String
+lettersToString letters = letters
+    |> List.map letterToChar
+    |> List.map String.fromChar
+    |> List.foldr (++) ""
+
+viewDefinitonLink word children = a [ href ("https://www.merriam-webster.com/dictionary/" ++ word), class "view_definiton", target "_blank" ] children
+
+letterDisplay won letters = (List.map (renderLetter won) letters)
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ class "main" ]
         [
             img[src ("/hangman/" ++ String.fromInt(model.triesLeft) ++ ".svg")][],
-            ul []
-                 (List.map renderLetter model.progress),
+            div [ class "letters" ] (case model.won of
+                InProgress -> letterDisplay model.won model.progress
+                _ -> [ viewDefinitonLink (lettersToString model.progress) (letterDisplay model.won model.progress) ]
+            ),
             case model.won of
-                Won -> text "You won!"
-                Lost -> text "You Lost!"
-                InProgress -> text ("Tries left: " ++ (String.fromInt model.triesLeft))
+                Won -> wonOverlay
+                _ -> text ""
         ]
 
+
+confetti : Int -> Html msg
+confetti i = div [ class ("confetti-" ++ String.fromInt i) ] [ ]
+
+wonOverlay = div [ class "confetti_overlay" ] (List.map confetti (List.range 0 150))
 
 ---- SUBSCRIPTIONS ----
 
