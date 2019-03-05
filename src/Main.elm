@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html, text, div, h1, img, ul, li, input, span, a, img)
 import Html.Attributes exposing (src, class, href, rel, target, style)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 import Set exposing (Set)
 
 import Keyboard exposing (Key(..))
@@ -20,7 +20,8 @@ type alias Model =
         inputLetters: Set Char,
         won: Won,
         triesLeft: Int,
-        words: List String
+        words: List String,
+        usedWords: List String
     }
 
 toUnsolvedLetterList : String -> List Letter
@@ -36,19 +37,21 @@ init words =
                 inputLetters = Set.fromList [],
                 won = InProgress,
                 triesLeft = 13,
-                words = otherWords
+                words = otherWords,
+                usedWords = []
             }, Cmd.none )
         [] -> ( {
                 progress = [Unsolved 't', Unsolved 'e', Unsolved 's', Unsolved 't'],
                 inputLetters = Set.fromList [],
                 won = InProgress,
                 triesLeft = 13,
-                words = []
+                words = [],
+                usedWords = []
             }, Cmd.none )
 
 ---- UPDATE ----
 
-type Msg = KeyUp RawKey | None
+type Msg = KeyUp RawKey | Reset | None
 
 
 solveLetterIfMatching : Char -> Letter -> Letter
@@ -112,6 +115,38 @@ update msg model =
                                 }, Cmd.none)
                     Nothing ->
                         ( model, Cmd.none )
+        Reset ->
+            case model.words of
+                firstWord :: otherWords -> 
+                    ( {
+                        progress = toUnsolvedLetterList firstWord,
+                        inputLetters = Set.fromList [],
+                        won = InProgress,
+                        triesLeft = 13,
+                        words = otherWords,
+                        usedWords = (lettersToString model.progress) :: model.usedWords
+                    }, Cmd.none )
+                [] -> 
+                    case model.usedWords of
+                        firstWord :: otherWords ->
+                            ( {
+                                progress = toUnsolvedLetterList firstWord,
+                                inputLetters = Set.fromList [],
+                                won = InProgress,
+                                triesLeft = 13,
+                                words = (lettersToString model.progress) :: otherWords,
+                                usedWords = []
+                            }, Cmd.none )
+                        [] ->
+                            -- This case is impossible, as usedWords cant be empty when the word list is empty
+                            ( {
+                                progress = toUnsolvedLetterList "impossible",
+                                inputLetters = Set.fromList [],
+                                won = InProgress,
+                                triesLeft = 13,
+                                words = [],
+                                usedWords = []
+                            }, Cmd.none )
         None -> (model, Cmd.none)
 
 
@@ -168,9 +203,12 @@ view model =
                 InProgress -> letterDisplay model.won model.progress
                 _ -> [ viewDefinitonLink (lettersToString model.progress) (letterDisplay model.won model.progress) ]
             ),
-            case model.won of
+            (case model.won of
                 Won -> wonOverlay
-                _ -> text ""
+                _ -> text ""),
+            (case model.won of
+                InProgress -> text ""
+                _ -> span [ onClick Reset, class "another_round "] [ text "🤺 Another Round?" ])
         ]
 
 
@@ -185,8 +223,6 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Keyboard.ups KeyUp ]
-
-
 
 ---- PROGRAM ----
 
