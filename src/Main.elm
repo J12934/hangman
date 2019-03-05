@@ -208,7 +208,7 @@ view model =
                 _ -> text ""),
             (case model.won of
                 InProgress -> text ""
-                _ -> span [ onClick Reset, class "another_round "] [ text "🤺 Another Round?" ])
+                _ -> span [ onClick Reset, class "another_round"] [ text "🤺 Another Round?" ])
         ]
 
 
