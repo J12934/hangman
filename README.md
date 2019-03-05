@@ -1,3 +1,9 @@
+# Hangman
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/8f74581f-d31b-4eee-b603-bf968277dd5d/deploy-status)](https://app.netlify.com/sites/hangman-fh-kiel/deploys)
+
+Project for Functional Programming at FH-Kiel
+
 # Elm App
 
 This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).
