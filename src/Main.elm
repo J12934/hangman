@@ -168,6 +168,7 @@ view model =
                 InProgress -> letterDisplay model.won model.progress
                 _ -> [ viewDefinitonLink (lettersToString model.progress) (letterDisplay model.won model.progress) ]
             ),
+            lettersOverview (Set.toList model.inputLetters),
             case model.won of
                 Won -> wonOverlay
                 _ -> text ""
@@ -178,6 +179,12 @@ confetti : Int -> Html msg
 confetti i = div [ class ("confetti-" ++ String.fromInt i) ] [ ]
 
 wonOverlay = div [ class "confetti_overlay" ] (List.map confetti (List.range 0 150))
+
+letterToLi letter = li [][text (String.fromChar letter)]
+
+
+lettersOverview : List Char -> Html msg
+lettersOverview letters = ul [ class "inputed_letters" ] (List.map letterToLi letters)
 
 ---- SUBSCRIPTIONS ----
 
