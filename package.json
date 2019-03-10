@@ -10,7 +10,8 @@
     "build-css": "node-sass-chokidar src/ -o src/",
     "watch-css": "npm run build-css && node-sass-chokidar src/ -o src/ --watch --recursive",
     "build-elm": "elm-app build",
-    "build": "npm run build-css && npm run build-elm"
+    "build": "npm run build-css && npm run build-elm",
+    "test": "elm-app test"
   },
   "repository": {
     "type": "git",
