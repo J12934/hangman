@@ -9,6 +9,8 @@ import Set exposing (Set)
 import Keyboard exposing (Key(..))
 import Keyboard exposing (RawKey)
 
+totalTries = 13
+
 ---- MODEL ----
 type Letter = Solved Char | Unsolved Char
 
@@ -36,7 +38,7 @@ init words =
                 progress = toUnsolvedLetterList firstWord,
                 inputLetters = Set.fromList [],
                 won = InProgress,
-                triesLeft = 13,
+                triesLeft = totalTries,
                 words = otherWords,
                 usedWords = []
             }, Cmd.none )
@@ -44,7 +46,7 @@ init words =
                 progress = [Unsolved 't', Unsolved 'e', Unsolved 's', Unsolved 't'],
                 inputLetters = Set.fromList [],
                 won = InProgress,
-                triesLeft = 13,
+                triesLeft = totalTries,
                 words = [],
                 usedWords = []
             }, Cmd.none )
@@ -93,51 +95,47 @@ keyCodeToChar keyCode =
 
 handleLetter : Model -> Char -> ( Model, Cmd Msg )
 handleLetter model c = 
-    --- Input Buchstabe schon versucht?
-    if Set.member c model.inputLetters then
-        --- Input ignorieren
-        ( model, Cmd.none )
-    else
-        --- Input Buchstabe löst einen Buchstaben vom Wort
-        if isSuccessfulTry model.progress c then
-            let
-                currentProgress = List.map (solveLetterIfMatching c) model.progress
-            in
-                ({ model |
-                    progress = currentProgress,
-                    inputLetters = Set.insert c model.inputLetters,
-                    won = if (isWon currentProgress) then Won else InProgress
-                }, Cmd.none)
-        --- Fehlerhafter versuch
-        else
+    --- successful attempt: input letter solves a letter from the target word
+    if isSuccessfulTry model.progress c then
+        let
+            currentProgress = List.map (solveLetterIfMatching c) model.progress
+        in
             ({ model |
+                progress = currentProgress,
                 inputLetters = Set.insert c model.inputLetters,
-                --- Game is lost if only 1 attempt remained
-                won = if model.triesLeft == 1 then Lost else InProgress,
-                triesLeft = (model.triesLeft - 1)
+                won = if (isWon currentProgress) then Won else InProgress
             }, Cmd.none)
-                
+    --- failed attempt
+    else
+        ({ model |
+            inputLetters = Set.insert c model.inputLetters,
+            --- Game is lost if only 1 attempt remained
+            won = if model.triesLeft == 1 then Lost else InProgress,
+            triesLeft = (model.triesLeft - 1)
+        }, Cmd.none)
+
+handleRawInput : Model -> Maybe Char -> (Model, Cmd Msg)
+handleRawInput model char = case model.won of
+    -- Handle normal input
+    InProgress -> case char of
+        Just c ->
+            --- input letter already tried?
+            if Set.member c model.inputLetters then
+                --- already tried: ignore input
+                ( model, Cmd.none )
+            else
+                handleLetter model c
+        Nothing ->
+            ( model, Cmd.none )
+    -- Ignore Inputs when the game is already won or already lost
+    Won -> ( model, Cmd.none )
+    Lost -> (model, Cmd.none)
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model = 
     case msg of
-        KeyUp rawKey ->
-            case model.won of
-                Won -> ( model, Cmd.none )
-                Lost -> (model, Cmd.none)
-                InProgress -> case (keyToChar rawKey) of
-                    Just c ->
-                        handleLetter model c
-                    Nothing ->
-                        ( model, Cmd.none )
-        ChromecastKeyPress keyCode ->
-            case model.won of
-                Won -> ( model, Cmd.none )
-                Lost -> (model, Cmd.none)
-                InProgress -> case (keyCodeToChar keyCode) of
-                    Just c ->
-                        handleLetter model c  
-                    Nothing ->
-                        ( model, Cmd.none )
+        KeyUp rawKey -> handleRawInput model (keyToChar rawKey)
+        ChromecastKeyPress keyCode -> handleRawInput model (keyCodeToChar keyCode)
         Reset ->
             case model.words of
                 firstWord :: otherWords -> 
@@ -145,28 +143,30 @@ update msg model =
                         progress = toUnsolvedLetterList firstWord,
                         inputLetters = Set.fromList [],
                         won = InProgress,
-                        triesLeft = 13,
+                        triesLeft = totalTries,
                         words = otherWords,
                         usedWords = (lettersToString model.progress) :: model.usedWords
                     }, Cmd.none )
+                -- This case only happens after the suer played 1000 round without reloading the page
                 [] -> 
                     case model.usedWords of
+                        -- Switch usedWords with words. -> the words are repeated after 1000 rounds
                         firstWord :: otherWords ->
                             ( {
                                 progress = toUnsolvedLetterList firstWord,
                                 inputLetters = Set.fromList [],
                                 won = InProgress,
-                                triesLeft = 13,
+                                triesLeft = totalTries,
                                 words = (lettersToString model.progress) :: otherWords,
                                 usedWords = []
                             }, Cmd.none )
                         [] ->
-                            -- This case is impossible, as usedWords cant be empty when the word list is empty
+                            -- This case is impossible, as usedWords cant be empty unless the inital word list is empty
                             ( {
                                 progress = toUnsolvedLetterList "impossible",
                                 inputLetters = Set.fromList [],
                                 won = InProgress,
-                                triesLeft = 13,
+                                triesLeft = totalTries,
                                 words = [],
                                 usedWords = []
                             }, Cmd.none )
