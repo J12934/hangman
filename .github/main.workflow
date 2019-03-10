@@ -5,17 +5,17 @@ workflow "Run Build & Test" {
 
 action "Install" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  runs = "install"
+  args = "install"
 }
 
 action "Build" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  runs = "build"
   needs = ["Install"]
+  args = "build"
 }
 
 action "Test" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  runs = "test"
   needs = ["Build"]
+  args = "test"
 }
