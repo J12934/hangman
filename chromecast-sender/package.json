@@ -1,0 +1,32 @@
+{
+  "name": "hangman-sender",
+  "version": "1.0.0",
+  "description": "Chromecast sender for hangman",
+  "scripts": {
+    "build": "npx webpack --mode production",
+    "start": "npx webpack-dev-server --mode development --open"
+  },
+  "author": "Simon Arp",
+  "dependencies": {
+    "lodash": "^4.17.10",
+    "react": "^16.5.0",
+    "react-dom": "^16.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "babel-loader": "^8.0.2",
+    "@babel/plugin-proposal-decorators": "^7.0.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "clean-webpack-plugin": "^0.1.19",
+    "css-loader": "^1.0.0",
+    "html-webpack-plugin": "^3.1.0",
+    "node-sass": "^4.8.3",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.0",
+    "webpack": "^4.5.0",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.1"
+  }
+}

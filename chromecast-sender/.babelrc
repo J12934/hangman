@@ -1,0 +1,32 @@
+{
+  "env": {
+    "development": {
+      "presets": [
+        ["@babel/env", {"targets": {"chrome": "68"}}],
+        "@babel/react"
+      ],
+      "plugins": [
+        ["@babel/plugin-proposal-decorators", {"legacy": true}],
+        "@babel/proposal-object-rest-spread"
+      ]
+    },
+    "backend": {
+      "presets": [
+        ["env", {"targets": {"node": "6.10"}}]
+      ],
+      "plugins": [
+        "transform-decorators-legacy",
+        "transform-object-rest-spread"
+      ]
+    },
+    "test": {
+      "presets": [
+        ["env", {"targets": {"node": "6.10"}}]
+      ],
+      "plugins": [
+        "transform-decorators-legacy",
+        "transform-object-rest-spread"
+      ]
+    }
+  }
+}

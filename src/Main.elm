@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
 import Html exposing (Html, text, div, h1, img, ul, li, input, span, a, img)
@@ -51,7 +51,7 @@ init words =
 
 ---- UPDATE ----
 
-type Msg = KeyUp RawKey | Reset | None
+type Msg = KeyUp RawKey | ChromecastKeyPress Int | Reset | None
 
 
 solveLetterIfMatching : Char -> Letter -> Letter
@@ -80,7 +80,43 @@ keyToChar rawKey =
                             Nothing
             _ ->
                 Nothing
+                
+keyCodeToChar : Int -> Maybe Char
+keyCodeToChar keyCode =
+    let
+        char = Char.fromCode keyCode
+    in
+        if Char.isAlpha char then
+            Just (Char.toLower char)
+        else
+            Nothing
 
+handleLetter : Model -> Char -> ( Model, Cmd Msg )
+handleLetter model c = 
+    --- Input Buchstabe schon versucht?
+    if Set.member c model.inputLetters then
+        --- Input ignorieren
+        ( model, Cmd.none )
+    else
+        --- Input Buchstabe löst einen Buchstaben vom Wort
+        if isSuccessfulTry model.progress c then
+            let
+                currentProgress = List.map (solveLetterIfMatching c) model.progress
+            in
+                ({ model |
+                    progress = currentProgress,
+                    inputLetters = Set.insert c model.inputLetters,
+                    won = if (isWon currentProgress) then Won else InProgress
+                }, Cmd.none)
+        --- Fehlerhafter versuch
+        else
+            ({ model |
+                inputLetters = Set.insert c model.inputLetters,
+                --- Game is lost if only 1 attempt remained
+                won = if model.triesLeft == 1 then Lost else InProgress,
+                triesLeft = (model.triesLeft - 1)
+            }, Cmd.none)
+                
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model = 
     case msg of
@@ -90,29 +126,16 @@ update msg model =
                 Lost -> (model, Cmd.none)
                 InProgress -> case (keyToChar rawKey) of
                     Just c ->
-                        --- Input Buchstabe schon versucht?
-                        if Set.member c model.inputLetters then
-                            --- Input ignorieren
-                            ( model, Cmd.none )
-                        else
-                            --- Input Buchstabe löst einen Buchstaben vom Wort
-                            if isSuccessfulTry model.progress c then
-                                let
-                                    currentProgress = List.map (solveLetterIfMatching c) model.progress
-                                in
-                                    ({ model |
-                                        progress = currentProgress,
-                                        inputLetters = Set.insert c model.inputLetters,
-                                        won = if (isWon currentProgress) then Won else InProgress
-                                    }, Cmd.none)
-                            --- Fehlerhafter versuch
-                            else
-                                ({ model |
-                                    inputLetters = Set.insert c model.inputLetters,
-                                    --- Game is lost if only 1 attempt remained
-                                    won = if model.triesLeft == 1 then Lost else InProgress,
-                                    triesLeft = (model.triesLeft - 1)
-                                }, Cmd.none)
+                        handleLetter model c
+                    Nothing ->
+                        ( model, Cmd.none )
+        ChromecastKeyPress keyCode ->
+            case model.won of
+                Won -> ( model, Cmd.none )
+                Lost -> (model, Cmd.none)
+                InProgress -> case (keyCodeToChar keyCode) of
+                    Just c ->
+                        handleLetter model c  
                     Nothing ->
                         ( model, Cmd.none )
         Reset ->
@@ -229,7 +252,15 @@ lettersOverview letters = ul [ class "inputed_letters" ] (List.map letterToLi le
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Keyboard.ups KeyUp ]
+        [ Keyboard.ups KeyUp,
+          chromecastKeyPress ChromecastKeyPress,
+          chromecastResetGame (always Reset)
+        ]
+        
+---- PORTS ----
+
+port chromecastKeyPress : (Int -> msg) -> Sub msg
+port chromecastResetGame : (() -> msg) -> Sub msg
 
 ---- PROGRAM ----
 

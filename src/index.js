@@ -2,6 +2,9 @@ import './main.css';
 import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
 import shuffle from 'lodash/shuffle';
+import { KEYBOARD_PRESS, RESET_GAME } from './chromecast-messages'
+
+const isGoogleCast = / CrKey\//.test(navigator.userAgent);
 
 const RANDOM_WORDS = [
   'kayle',
@@ -1006,9 +1009,28 @@ const RANDOM_WORDS = [
   'shechitas',
 ];
 
-Elm.Main.init({
+const app = Elm.Main.init({
   node: document.getElementById('root'),
   flags: shuffle(RANDOM_WORDS),
 });
 
 registerServiceWorker();
+
+if (isGoogleCast) {
+	cast.framework.CastReceiverContext.getInstance().setLoggerLevel(cast.framework.LoggerLevel.DEBUG);
+    cast.framework.CastReceiverContext.getInstance()
+        .addCustomMessageListener('urn:x-cast:mi136-hangman', msg => {
+			const { type, payload } = msg.data;
+
+            switch (type) {
+				case KEYBOARD_PRESS:
+					app.ports.chromecastKeyPress.send(payload.keyCode);
+					break;
+
+				case RESET_GAME:
+					app.ports.chromecastResetGame.send(null);
+					break;
+			}
+        });
+    cast.framework.CastReceiverContext.getInstance().start();
+}
